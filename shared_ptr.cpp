@@ -1,36 +1,50 @@
 #include <memory>
 #include <iostream>
+template <typename T>
+class controlBlock {
+
+public:
+       T* ptr;
+       int shared_count;
+       int weak_count;
+
+       controlBlock(T* p) : ptr{p}, shared_count{1}, weak_count{0} {}
+       ~controlBlock() {
+                delete ptr;
+       }
+
+};
 
 template <typename T>
 
 class shared {
     
     T* ptr;
-    int* count;
+    controlBlock<T>* p;
 
 public:
 
-    shared() : ptr{nullptr}, count(new int(0)) {}
-    explicit shared(T* pt) : ptr{pt}, count(new int(1)) {}
-    shared(const shared& other) : ptr{other.ptr}, count{other.count} {
-        if(count) ++(*count);
+    shared() : ptr{nullptr}, p{nullptr} {}
+    explicit shared(T* pt) : ptr{pt}, p(new controlBlock<T>(pt)) {}
+    shared(const shared& other) : ptr{other.ptr}, p{other.p} {
+        if(p) ++(p->shared_count);
     }
-    shared(shared&& other) noexcept : ptr{other.ptr}, count{other.count} {
+    shared(shared&& other) noexcept : ptr{other.ptr}, p{other.p} {
         other.ptr = nullptr;
-        other.count = nullptr;
+        other.p = nullptr;
     }
  
     template <typename U>
     shared(std::unique_ptr<U> &&other) noexcept {
         ptr = other.release();
-        count = new int(1);
+        p = new controlBlock<T>(other);
     }
     shared& operator=(const shared& other) {
         if(this != &other) {
             release();
             ptr = other.ptr;
-            count = other.count;
-            ++(*count);
+            p = other.p;
+            ++(p->shared_count);
         }
         return *this;
     }
@@ -39,9 +53,9 @@ public:
         if(this != &other) {
             release();
             ptr = other.ptr;
-            count = other.count;
+            p = other.p;
             other.ptr = nullptr;
-            other.count = nullptr;
+            other.p = nullptr;
         }
         return *this;
     }
@@ -55,20 +69,19 @@ public:
         return ptr;
     }
     void release() {
-        if(ptr) {
-            --(*count);
-            if(*count == 0) {
+        if(p) {
+            --(p->shared_count);
+            if(p->shared_count == 0) {
 		    std::cout << "deleted" << std::endl;
-		delete ptr;
-                delete count;
+                delete p;
         
             }
         }
         ptr = nullptr;
-        count = nullptr;
+        p  = nullptr;
     }
     int use_count() const {
-        return count ? *count : 0;
+        return p ? p->shared_count : 0;
     }
     operator bool() const{
         return ptr != nullptr;
@@ -76,7 +89,7 @@ public:
     void reset(T* new_pt) {
         release();
         ptr = new_pt;
-        count = new int(1);
+        p = new controlBlock<T>(new_pt);
     }
     ~shared() {
         std::cout << "dtor" << std::endl;
