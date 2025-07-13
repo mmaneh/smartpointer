@@ -1,3 +1,6 @@
+#ifndef MY_UNIQUE_H
+#define MY_UNIQUE_H
+
 #include <iostream>
 template <typename T>
 class myunique_ptr {
@@ -27,7 +30,8 @@ public:
 
 	T* operator->() {return ptr;}
 	T& operator*() {return *ptr;}
-	
+	const T* operator->() const {return ptr;}
+	const T& operator*() const {return *ptr;}	
 	T* get() { return ptr;}
 	T* release() {
 		T* tmp = ptr;
@@ -45,11 +49,4 @@ public:
     	}
 	
 };
-
-int main() {
-    myunique_ptr<int> p1(new int(10));
-    std::cout << *p1 << std::endl;
-
-    myunique_ptr<int> p2 = std::move(p1);
-    std::cout << *p2 << std::endl;
-}
+#endif

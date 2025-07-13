@@ -19,7 +19,7 @@ class weak{
 	
     public: 
 	weak(){}
-	weak()
+	
 	weak(const shared<T>& other) : ptr{other.ptr} {
 		if (ptr) ++(ptr->weak_count);
 	}
@@ -52,6 +52,14 @@ class weak{
             	ptr = nullptr;
         	}
     	}
+
+	shared<T> lock() {
+		if(expired()) {	
+			return shared<T>();
+		}else {
+			return shared<T>(ptr);
+		}
+	}
 	
 };
 

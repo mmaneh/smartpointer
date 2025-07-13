@@ -1,5 +1,7 @@
-#include <memory>
+#ifndef MY_SHARED_H
+#define MY_SHARED_H
 #include <iostream>
+#include <memory>
 template <typename T>
 class controlBlock {
 
@@ -26,6 +28,9 @@ public:
 
     shared() : ptr{nullptr}, p{nullptr} {}
     explicit shared(T* pt) : ptr{pt}, p(new controlBlock<T>(pt)) {}
+    explicit shared(controlBlock<T>* pt) : ptr(pt->ptr), p(pt) {
+        if (p) ++(p->shared_count);
+    }
     shared(const shared& other) : ptr{other.ptr}, p{other.p} {
         if(p) ++(p->shared_count);
     }
@@ -65,6 +70,12 @@ public:
     T& operator*() {
         return *ptr;
     }
+    const T* operator->() const {
+    	return ptr;
+    }
+    const T& operator*() const {
+    	return *ptr;
+    }
     T* get() const{
         return ptr;
     }
@@ -73,7 +84,9 @@ public:
             --(p->shared_count);
             if(p->shared_count == 0) {
 		    std::cout << "deleted" << std::endl;
-                delete p;
+                delete p->ptr;
+		p->ptr = nullptr;
+		if(p->weak_count == 0) delete p;
         
             }
         }
@@ -100,23 +113,5 @@ public:
     }
     
 };
+#endif
 
-int main() {
-    shared<int> ptr1(new int(5));
-    std::cout << *ptr1 << std::endl;
-    std::cout << "count" << ptr1.use_count() << std::endl;
-    auto ptr2 = ptr1; 
-    std::cout << "count" << ptr1.use_count() << std::endl;
-    if(ptr1 == ptr2) {
-        std::cout << "Equal" << std::endl;
-    }else {
-        std::cout << "Not equal" << std::endl;
-    }
-    shared<int> ptr3(new int(10));
-    if (ptr1 == ptr3) {
-        std::cout << "Equal" << std::endl;
-    }
-    else {
-        std::cout << "Not equal" << std::endl;
-    }
-}
